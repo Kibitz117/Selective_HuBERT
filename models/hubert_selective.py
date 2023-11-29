@@ -1,17 +1,25 @@
 from transformers import HubertForSequenceClassification, HubertConfig
 import torch
 
+
 class HuBERTSelectiveNet(torch.nn.Module):
     def __init__(self, hubert_model, num_classes:int,feature_size:int, init_weights=True):
         super(HuBERTSelectiveNet, self).__init__()
         self.hubert_model = hubert_model
         self.dim_features = feature_size  # This should be 768 based on your config
         self.num_classes = num_classes
-        
-        # Classifier represented as f() in the original paper
+        self.norm_after_activation = True 
+
+        hidden_size = 1024
+
+        #https://github.com/hearbenchmark/hear-eval-kit/blob/main/heareval/predictions/task_predictions.py
         self.classifier = torch.nn.Sequential(
-            torch.nn.Linear(self.dim_features, self.num_classes)
+            torch.nn.Linear(self.dim_features, hidden_size),
+            torch.nn.Dropout(0.1),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, self.num_classes)
         )
+        
 
         self.selector = torch.nn.Sequential(
             torch.nn.Linear(self.dim_features, self.dim_features),
@@ -24,7 +32,9 @@ class HuBERTSelectiveNet(torch.nn.Module):
 
         # Auxiliary classifier represented as h() in the original paper
         self.aux_classifier = torch.nn.Sequential(
-            torch.nn.Linear(self.dim_features, self.num_classes)
+            torch.nn.Linear(self.dim_features, hidden_size),
+            torch.nn.Linear(hidden_size, self.num_classes),
+            torch.nn.Sigmoid()
         )
 
         #Initialize weights of heads if required
@@ -42,7 +52,7 @@ class HuBERTSelectiveNet(torch.nn.Module):
 
         # Perform mean pooling over the timesteps
         # Assuming x has shape [batch_size, num_timesteps, num_features]
-        x = torch.mean(x, dim=1)  # Now x has shape [batch_size, num_features]
+        x = torch.mean(x, dim=1)  # Now x has shape [batch_size, num_features=768]
 
         # Pass the pooled features through the classifier and selector heads
         prediction_out = self.classifier(x)

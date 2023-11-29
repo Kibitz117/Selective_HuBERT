@@ -137,7 +137,6 @@ def selective_train(dataloader, model, selective_loss, optimizer, device) -> flo
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
-        
         logits, selection_logits, auxiliary_logits = model(X)
         labels = y.long()
         loss_dict = selective_loss(prediction_out=logits,
@@ -165,18 +164,19 @@ def selective_train(dataloader, model, selective_loss, optimizer, device) -> flo
 def selective_test(dataloader, model, device) -> float:
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
-    test_loss = 0.0
+    test_acc = 0.0
 
     model.eval()
     with torch.no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             logits, selection_logits, auxiliary_logits = model(X)
-            test_acc += flat_accuracy(logits, labels)
+            test_acc += flat_accuracy(logits, y)
 
     test_acc /= num_batches
 
     print(
         f"Test Error: \n Avg accuracy: {test_acc:>8f} \n")
 
-    return test_loss
+    return test_acc
+    

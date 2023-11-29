@@ -6,3 +6,5 @@ models/__pycache__
 utils/.ipynb_checkpoints/
 utils/__pycache__
 models/.DS_Store
+data/
+models/
