@@ -3,9 +3,8 @@ import torch
 
 
 class HuBERTSelectiveNet(torch.nn.Module):
-    def __init__(self, hubert_model, num_classes:int,feature_size:int, init_weights=True):
+    def __init__(self, num_classes:int, feature_size:int, init_weights=True):
         super(HuBERTSelectiveNet, self).__init__()
-        self.hubert_model = hubert_model
         self.dim_features = feature_size  # This should be 768 based on your config
         self.num_classes = num_classes
         self.norm_after_activation = True 
@@ -44,20 +43,9 @@ class HuBERTSelectiveNet(torch.nn.Module):
             self._initialize_weights(self.aux_classifier)
 
     def forward(self, input_values):
-        # Run input through HuBERT model
-        outputs = self.hubert_model(input_values)
-
-        # Extract the last hidden state (features)
-        x = outputs.last_hidden_state  # Extracts the tensor
-
-        # Perform mean pooling over the timesteps
-        # Assuming x has shape [batch_size, num_timesteps, num_features]
-        x = torch.mean(x, dim=1)  # Now x has shape [batch_size, num_features=768]
-
-        # Pass the pooled features through the classifier and selector heads
-        prediction_out = self.classifier(x)
-        selection_out = self.selector(x)
-        auxiliary_out = self.aux_classifier(x)
+        prediction_out = self.classifier(input_values)
+        selection_out = self.selector(input_values)
+        auxiliary_out = self.aux_classifier(input_values)
 
         return prediction_out, selection_out, auxiliary_out
 
@@ -81,6 +69,7 @@ class HuBERTSelectiveNet(torch.nn.Module):
         with open(save_path + "/config.json", 'w') as f:
             json.dump(model_config, f)
     def load_model(load_path, hubert_model_class):
+        # TODO fix this it's wrong
         # Load the configuration
         with open(load_path + "/config.json", 'r') as f:
             model_config = json.load(f)

@@ -174,6 +174,7 @@ class SelectiveLoss(torch.nn.Module):
         self.coverage = coverage
         self.lm = lm
         self.alpha = alpha
+        self.device = device
 
     def forward(self, prediction_out, selection_out, auxiliary_out, target, threshold=0.5, mode='train'):
         """
@@ -183,20 +184,20 @@ class SelectiveLoss(torch.nn.Module):
         """
         #check device
         # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        # compute emprical coverage (=phi^)
-        emprical_coverage = selection_out.mean() 
+        # compute empirical coverage (=phi^)
+        empirical_coverage = selection_out.mean() 
         
-        # compute emprical risk (=r^)
-        emprical_risk = (self.loss_func(prediction_out, target)*selection_out.view(-1)).mean()
-        emprical_risk = emprical_risk / emprical_coverage
+        # compute empirical risk (=r^)
+        empirical_risk = (self.loss_func(prediction_out, target)*selection_out.view(-1)).mean()
+        empirical_risk = empirical_risk / empirical_coverage
 
         # compute penalty (=psi)
         coverage = torch.tensor([self.coverage], dtype=torch.float32, requires_grad=True, device=self.device)
-        penalty = torch.max(coverage-emprical_coverage, torch.tensor([0.0], dtype=torch.float32, requires_grad=True, device=self.device))**2
+        penalty = torch.max(coverage-empirical_coverage, torch.tensor([0.0], dtype=torch.float32, requires_grad=True, device=self.device))**2
         penalty *= self.lm
 
         # compute selective loss (=L(f,g))
-        selective_loss = emprical_risk + penalty
+        selective_loss = empirical_risk + penalty
         
                 # Assuming binary classification
         auxiliary_out_expanded = torch.stack([auxiliary_out, -auxiliary_out], dim=1)
@@ -235,8 +236,8 @@ class SelectiveLoss(torch.nn.Module):
         if mode == 'validation':
             pref = 'val_'
         loss_dict={}
-        loss_dict['{}emprical_coverage'.format(pref)] = emprical_coverage.detach().cpu().item()
-        loss_dict['{}emprical_risk'.format(pref)] = emprical_risk.detach().cpu().item()
+        loss_dict['{}empirical_coverage'.format(pref)] = empirical_coverage.detach().cpu().item()
+        loss_dict['{}empirical_risk'.format(pref)] = empirical_risk.detach().cpu().item()
         loss_dict['{}penalty'.format(pref)] = penalty.detach().cpu().item()
         loss_dict['{}selective_loss'.format(pref)] = selective_loss.detach().cpu().item()
         loss_dict['{}ce_loss'.format(pref)] = ce_loss.detach().cpu().item()
@@ -260,6 +261,11 @@ class SelectiveLoss(torch.nn.Module):
             prediction_out: (B,num_classes)
             selection_out:  (B, 1)
         """
+        print('pred out', prediction_out)
+        print('pred out shape', prediction_out.shape)
+        print('select out', selection_out)
+        print('select out shape', selection_out.shape)
+        print('pred out argmax', torch.argmax(prediction_out, dim=-1))
         g = (selection_out.mean(dim=1).squeeze(-1) > 0.5).float()
         num = torch.dot(g, (torch.argmax(prediction_out, dim=-1) == target).float())
         return num / torch.sum(g)
@@ -271,6 +277,9 @@ class SelectiveLoss(torch.nn.Module):
         Args:
             selection_out:  (B, 1)
         """
+        print('threshold', threshold)
+        print(selection_out)
+        print(selection_out.shape)
         g = (selection_out.squeeze(-1) >= threshold).float()
         return torch.mean(g)
 
