@@ -76,7 +76,7 @@ def main():
             #Mean aux out to fit cross entropy loss
             auxiliary_logits=auxiliary_logits.mean(dim=1)
             #convert labels to long
-            labels=labels.long()
+            #labels=labels.long()
             #Average the timesteps
             loss_dict = selective_loss(prediction_out=logits,
                                     selection_out=selection_logits,

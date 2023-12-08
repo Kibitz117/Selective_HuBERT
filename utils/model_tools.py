@@ -175,7 +175,7 @@ def selective_train(dataloader, model, selective_loss, optimizer, device) -> flo
         
         logits, selection_logits, auxiliary_logits = model(X)
 
-        auxiliary_logits=auxiliary_logits.mean(dim=1)
+        #auxiliary_logits=auxiliary_logits.mean(dim=1)
         
         labels = y.long() # TODO just dix this in dataloader
         loss_dict = selective_loss(prediction_out=logits,
