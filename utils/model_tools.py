@@ -181,7 +181,7 @@ def selective_train(dataloader, model, selective_loss, optimizer, device) -> flo
         loss_dict = selective_loss(prediction_out=logits,
                                     selection_out=selection_logits,
                                     auxiliary_out=auxiliary_logits,
-                                    target=labels)
+                                    target=labels, mode='train')
 
         loss = loss_dict['loss']
         loss.backward()
@@ -197,10 +197,10 @@ def selective_train(dataloader, model, selective_loss, optimizer, device) -> flo
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-    return train_loss/len(dataloader)
+    return train_loss/len(dataloader), loss_dict
 
 
-def selective_test(dataloader, model, device) -> float:
+def selective_test(dataloader, model, selective_loss, device) -> float:
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
     test_acc = 0.0
@@ -209,13 +209,20 @@ def selective_test(dataloader, model, device) -> float:
     with torch.no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
+
+            labels = y.long()
             logits, selection_logits, auxiliary_logits = model(X)
             test_acc += flat_accuracy(logits, y)
+
+            loss_dict = selective_loss(prediction_out=logits,
+                                    selection_out=selection_logits,
+                                    auxiliary_out=auxiliary_logits,
+                                    target=labels, mode='test')
 
     test_acc /= num_batches
 
     print(
         f"Test Error: \n Avg accuracy: {test_acc:>8f} \n")
 
-    return test_acc
+    return test_acc, loss_dict
     

@@ -186,14 +186,6 @@ class SelectiveLoss(torch.nn.Module):
         # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # compute empirical coverage (=phi^)
         empirical_coverage = selection_out.mean() 
-        ##print("empirical_coverage", empirical_coverage)
-        ##print('selection_out.view(-1)', selection_out.view(-1))
-        ##print('selection_out.squeeze(-1)', selection_out.squeeze(-1).dtype)
-        ##print('prediction_out', prediction_out)
-        #print('prediction_out', prediction_out.shape)
-        #print('target', target.dtype)
-        #print('target', target.long().min())
-        #print('target', target.long().max())
         
         # compute empirical risk (=r^)
         empirical_risk = (self.loss_func(prediction_out, target)*selection_out.view(-1)).mean()
@@ -206,13 +198,8 @@ class SelectiveLoss(torch.nn.Module):
 
         # compute selective loss (=L(f,g))
         selective_loss = empirical_risk + penalty
-        
-                # Assuming binary classification
-        #auxiliary_out_expanded = torch.stack([auxiliary_out, -auxiliary_out], dim=1)
 
         # Now compute the cross entropy loss
-        #print(auxiliary_out)
-        #print(target)
         ce_loss = torch.nn.CrossEntropyLoss()(auxiliary_out, target)
 
         
@@ -271,11 +258,6 @@ class SelectiveLoss(torch.nn.Module):
             prediction_out: (B,num_classes)
             selection_out:  (B, 1)
         """
-        #print('pred out', prediction_out)
-        #print('pred out shape', prediction_out.shape)
-        #print('select out', selection_out)
-        #print('select out shape', selection_out.shape)
-        #print('pred out argmax', torch.argmax(prediction_out, dim=-1))
         g = (selection_out.mean(dim=1).squeeze(-1) > 0.5).float()
         num = torch.dot(g, (torch.argmax(prediction_out, dim=-1) == target).float())
         return num / torch.sum(g)
@@ -287,9 +269,6 @@ class SelectiveLoss(torch.nn.Module):
         Args:
             selection_out:  (B, 1)
         """
-        #print('threshold', threshold)
-        #print(selection_out)
-        #print(selection_out.shape)
         g = (selection_out.squeeze(-1) >= threshold).float()
         return torch.mean(g)
 
@@ -311,7 +290,6 @@ class SelectiveLoss(torch.nn.Module):
             prediction_out: (B,num_classes)
             selection_out:  (B, 1)
         """
-        # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         ce = self.loss_func(prediction_out, target)
         empirical_risk_variant = torch.mean(ce * selection_out.view(-1))
         empirical_coverage = selection_out.mean() 
